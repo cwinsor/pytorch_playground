@@ -1,3 +1,5 @@
+# from https://github.com/pytorch/examples/blob/main/dcgan/main.py
+
 from __future__ import print_function
 import argparse
 import os
@@ -11,6 +13,7 @@ import torch.utils.data
 import torchvision.datasets as dset
 import torchvision.transforms as transforms
 import torchvision.utils as vutils
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--dataset', required=True, help='cifar10 | lsun | mnist |imagenet | folder | lfw | fake')
