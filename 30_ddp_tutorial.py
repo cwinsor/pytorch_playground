@@ -4,6 +4,8 @@
 import os
 import sys
 import tempfile
+import datetime
+import argparse
 import torch
 import torch.distributed as dist
 import torch.nn as nn
@@ -12,13 +14,23 @@ import torch.multiprocessing as mp
 
 from torch.nn.parallel import DistributedDataParallel as DDP
 
+# logger from FACEBOOK_SWAV...
+# from facebook_swav.src.logger import create_logger
+
+parser = argparse.ArgumentParser(description="Evaluate models: Fine-tuning with 1% or 10% labels on ImageNet")
+
+parser.add_argument("--dist_url", default="env://", type=str,
+                    help="url used to set up distributed training")
+parser.add_argument("--dump_path", type=str, default=".",
+                    help="experiment dump path for checkpoints and log")
+
 # On Windows platform, the torch.distributed package only
 # supports Gloo backend, FileStore and TcpStore.
 # For FileStore, set init_method parameter in init_process_group
 # to a local file. Example as follow:
 # For TcpStore, same way as on Linux.
 
-def setup(rank, world_size):
+def setup(rank, world_size, args):
     os.environ['MASTER_ADDR'] = 'localhost'
     os.environ['MASTER_PORT'] = '12355'
 
@@ -29,12 +41,15 @@ def setup(rank, world_size):
     #     world_size=world_size)
 
     # initialize the process group (Windows)
-    init_method=r'file:\\D:\code_pytorch\my_playground\30_ddp_process_group'
+    print("init process group (start) - rank {} method {}".format(rank, args.dist_url))
     dist.init_process_group(
         "gloo",
         rank=rank,
-        init_method=init_method,
-        world_size=world_size)
+        init_method=args.dist_url,
+        world_size=world_size,
+        timeout=datetime.timedelta(seconds=60),
+    )
+    print("init process group (end)".format(rank))
 
 def cleanup():
     dist.destroy_process_group()
@@ -62,9 +77,17 @@ class ToyMpModel(nn.Module):
 # Input and output data will be placed in proper devices by either the application or 
 # the model forward() method.
 
-def demo_model_parallel(rank, world_size):
-    print(f"Running DDP with model parallel example on rank {rank}.")
-    setup(rank, world_size)
+def demo_model_parallel(rank, world_size, args):
+
+    setup(rank, world_size, args)
+
+    # create a logger
+    # logger = create_logger(os.path.join(args.dump_path, "log"), rank=rank)
+
+    # logger.info("============ Initialized logger ============")
+    # logger.info(
+    #     "\n".join("%s: %s" % (k, str(v)) for k, v in sorted(dict(vars(args)).items()))
+    # )
 
     # setup mp_model and devices for this process
     dev0 = (rank * 2) % world_size
@@ -84,19 +107,30 @@ def demo_model_parallel(rank, world_size):
 
     cleanup()
 
-def run_demo(demo_fn, world_size):
-    print("here {}".format(world_size))
-    # return
-    mp.spawn(demo_fn,
-             args=(world_size,),
+def run_demo(args, demo_fn):
+
+    # when using torch distributed (ddp) initialization via file
+    # need to delete the sync file before running init_process_group()
+    # see https://pytorch.org/docs/stable/distributed.html
+    syncfile = args.dist_url.split('file:\\')[1]
+    if os.path.exists(syncfile):
+        os.remove(syncfile)
+
+    n_gpus = torch.cuda.device_count()
+    assert n_gpus >= 2, f"Requires at least 2 GPUs to run, but got {n_gpus}"
+    world_size = n_gpus
+
+    print("----- logs at {} -----".format(args.dump_path))
+    print("spawning {} processes".format(world_size))
+
+    mp.spawn(fn=demo_fn,
+             args=(world_size, args,),
              nprocs=world_size,
              join=True)
 
 if __name__ == "__main__":
-    n_gpus = torch.cuda.device_count()
-    assert n_gpus >= 2, f"Requires at least 2 GPUs to run, but got {n_gpus}"
-    world_size = n_gpus
+    args = parser.parse_args()
     # run_demo(demo_basic, world_size)
     # run_demo(demo_checkpoint, world_size)
-    run_demo(demo_model_parallel, world_size)
+    run_demo(args, demo_model_parallel)
 
