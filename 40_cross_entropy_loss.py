@@ -30,7 +30,7 @@ parser.add_argument("--dump_path", type=str, default=".",
 # to a local file. Example as follow:
 # For TcpStore, same way as on Linux.
 
-def setup(rank, world_size, args):
+def setup(args):
     os.environ['MASTER_ADDR'] = 'localhost'
     os.environ['MASTER_PORT'] = '12355'
 
@@ -41,15 +41,16 @@ def setup(rank, world_size, args):
     #     world_size=world_size)
 
     # initialize the process group (Windows)
-    print("init process group (start) - rank {} method {}".format(rank, args.dist_url))
+    print("init process group (start) - rank {} world_size {} method {}".format(
+        args.rank, args.world_size, args.dist_url))
     dist.init_process_group(
         "gloo",
-        rank=rank,
+        rank=args.rank,
         init_method=args.dist_url,
-        world_size=world_size,
+        world_size=args.world_size,
         timeout=datetime.timedelta(seconds=60),
     )
-    print("init process group (end)".format(rank))
+    print("init process group (end)".format(args.rank))
 
 def cleanup():
     dist.destroy_process_group()
@@ -77,9 +78,11 @@ class ToyMpModel(nn.Module):
 # Input and output data will be placed in proper devices by either the application or 
 # the model forward() method.
 
-def demo_model_parallel(rank, world_size, args):
+def test_01(rank, args):
 
-    setup(rank, world_size, args)
+    args.rank = rank
+
+    setup(args)
 
     # create a logger
     # logger = create_logger(os.path.join(args.dump_path, "log"), rank=rank)
@@ -90,8 +93,8 @@ def demo_model_parallel(rank, world_size, args):
     # )
 
     # setup mp_model and devices for this process
-    dev0 = (rank * 2) % world_size
-    dev1 = (rank * 2 + 1) % world_size
+    dev0 = (rank * 2) % args.world_size
+    dev1 = (rank * 2 + 1) % args.world_size
     mp_model = ToyMpModel(dev0, dev1)
     ddp_mp_model = DDP(mp_model)
 
@@ -107,30 +110,29 @@ def demo_model_parallel(rank, world_size, args):
 
     cleanup()
 
-def run_demo(args, demo_fn):
+if __name__ == "__main__":
+
+    args = parser.parse_args()
 
     # when using torch distributed (ddp) initialization via file
-    # need to delete the sync file before running init_process_group()
+    # confirm the sync file doesn't exist before running init_process_group()
+    # if so - delete it
     # see https://pytorch.org/docs/stable/distributed.html
     syncfile = args.dist_url.split('file:\\')[1]
     if os.path.exists(syncfile):
         os.remove(syncfile)
+        print("removed")
+    else:
+        print("not there")
 
-    n_gpus = torch.cuda.device_count()
-    assert n_gpus >= 2, f"Requires at least 2 GPUs to run, but got {n_gpus}"
-    world_size = n_gpus
+    # zona - how many gpus...
+    args.world_size = torch.cuda.device_count()
+    # args.world_size = 1
 
     print("----- logs at {} -----".format(args.dump_path))
-    print("spawning {} processes".format(world_size))
+    print("spawning {} processes".format(args.world_size))
 
-    mp.spawn(fn=demo_fn,
-             args=(world_size, args,),
-             nprocs=world_size,
+    mp.spawn(fn=test_01,
+             args=(args,),
+             nprocs=args.world_size,
              join=True)
-
-if __name__ == "__main__":
-    args = parser.parse_args()
-    # run_demo(demo_basic, world_size)
-    # run_demo(demo_checkpoint, world_size)
-    run_demo(args, demo_model_parallel)
-

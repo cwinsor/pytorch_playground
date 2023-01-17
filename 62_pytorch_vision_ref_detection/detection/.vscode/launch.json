@@ -1,0 +1,96 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Current File",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "01 Faster R-CNN ResNet-50 FPN 2GPUa",
+            "type": "python",
+            "module": "torch.distributed.launch",
+            "request": "launch",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--nproc_per_node", "2",
+                "--use_env", "train.py",
+                "--world-size", "2",
+                "--data-path", "D:\\dataset_coco_2017\\coco",
+                "--dataset", "coco",
+                "--model", "fasterrcnn_resnet50_fpn",
+                "--epochs", "26",
+                "--lr-steps", "16", "22",
+                "--aspect-ratio-group-factor", "3",
+                "--weights-backbone", "ResNet50_Weights.IMAGENET1K_V1",
+            ]
+        },
+        // for torchrun see https://www.youtube.com/watch?v=9kIvQOiwYzg
+        {
+            "name": "02 Faster R-CNN ResNet-50 FPN 2GPUb",
+            "request": "torchrun train.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--nproc_per_node", "2",
+                "--use_env", "train.py",
+                "--world-size", "2",
+                "--data-path", "D:\\dataset_coco_2017\\coco",
+                "--dataset", "coco",
+                "--model", "fasterrcnn_resnet50_fpn",
+                "--epochs", "26",
+                "--lr-steps", "16", "22",
+                "--aspect-ratio-group-factor", "3",
+                "--weights-backbone", "ResNet50_Weights.IMAGENET1K_V1",
+            ]
+        },
+        {
+            "name": "03 Faster R-CNN ResNet-50 FPN 2GPUb",
+            "type": "python",
+            "request": "launch",
+            "program": "my_train.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--dataset", "coco",
+                "--model", "fasterrcnn_resnet50_fpn_v2",
+                "--epochs", "26",
+                "--lr-steps", "16", "22",
+                "--aspect-ratio-group-factor", "3",
+                "--weights-backbone", "ResNet50_Weights.IMAGENET1K_V1",
+            ]
+        },
+        {
+            "name": "04 Faster R-CNN MobileNetV3-Large FPN",
+            "type": "python",
+            "request": "launch",
+            "program": "my_train.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--world-size", "2",
+                "--dataset", "coco",
+                "--model", "fasterrcnn_mobilenet_v3_large_fpn",
+                "--epochs", "26",
+                "--lr-steps", "16", "22",
+                "--aspect-ratio-group-factor", "3",
+                "--weights-backbone", "MobileNet_V3_Large_Weights.IMAGENET1K_V1",
+            ]
+        },
+        {
+            "name": "penn_fudan",
+            "type": "python",
+            "request": "launch",
+            "program": "penn_fudan_1.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+        },
+    ]
+}

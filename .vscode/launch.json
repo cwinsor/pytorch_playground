@@ -1,0 +1,53 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+
+        {
+            "name": "current_file",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "30_ddp_tutorial",
+            "type": "python",
+            "request": "launch",
+            "program": "30_ddp_tutorial.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--dist_url", "file:\\C:\\Users\\chris\\pytorch_runtime_ddp_process\\ddp_tutorial",
+                "--dump_path", "D:\\code_pytorch\\my_playground\\logs",
+            ]
+        },
+        {
+            "name": "40_cross_entropy_loss",
+            "type": "python",
+            "request": "launch",
+            "program": "40_cross_entropy_loss.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--dist_url", "file:\\C:\\Users\\chris\\pytorch_runtime_ddp_process\\ddp_tutorial",
+                "--dump_path", "D:\\code_pytorch\\my_playground\\logs",
+            ]
+        },
+        {
+            "name": "41_cross_entropy_loss",
+            "type": "python",
+            "request": "launch",
+            "program": "41_cross_entropy_loss.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--dist_url", "file:\\C:\\Users\\chris\\pytorch_runtime_ddp_process\\ddp_tutorial",
+                "--dump_path", "D:\\code_pytorch\\my_playground\\logs",
+            ]
+        },
+    ]
+}
