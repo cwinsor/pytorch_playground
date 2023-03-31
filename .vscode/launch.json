@@ -4,6 +4,9 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+    
+
+
 
         {
             "name": "current_file",
@@ -47,6 +50,64 @@
             "args": [
                 "--dist_url", "file:\\C:\\Users\\chris\\pytorch_runtime_ddp_process\\ddp_tutorial",
                 "--dump_path", "D:\\code_pytorch\\my_playground\\logs",
+            ]
+        },
+        {
+            "name": "65_pgm_from_ness",
+            "type": "python",
+            "request": "launch",
+            "program": "65_pgm_from_ness.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--a_choice", "11",
+                "--debug",
+                "--a_string", "my_string",
+                "--a_number", "32",
+            ]
+        },
+        {
+            "name": "66_pyro",
+            "type": "python",
+            "request": "launch",
+            "program": "66_pgm_from_pyro.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--a_choice", "11",
+            ]
+        },
+        {
+            "name": "67_pgm_topic_model_from_pyro",
+            "type": "python",
+            "request": "launch",
+            "program": "67_pgm_topic_model_from_pyro.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--a_choice", "11",
+            ]
+        },
+        {
+            "name": "68a_pyro_covid_PREP_DATA",
+            "type": "python",
+            "request": "launch",
+            "program": "68a_pyro_covid_PREP_DATA.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "--a_choice", "11",
+            ]
+        },
+        {
+            "name": "68b_pyro_covid_BUILD_MODEL",
+            "type": "python",
+            "request": "launch",
+            "program": "68b_pyro_covid_BUILD_MODEL.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "--a_choice", "11",
             ]
         },
     ]
