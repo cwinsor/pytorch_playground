@@ -60,11 +60,13 @@ def main(args):
     #   git: https://github.com/ICRAR/ijson
     #   memory: https://pythonspeed.com/articles/json-memory-streaming/
 
+    # Reference for utf-8
+    # https://www.freecodecamp.org/news/what-is-utf-8-character-encoding/
     logger.info("reading...")
     local_filename = r"D:\dataset_covid_GeoCoV19\2020_02_01_05\ids_geo_2020-02-01.jsonl"
     tweet_data = []
     count = 0
-    CUTOFF = 5000
+    CUTOFF = math.inf  # 5000
 
     with open(local_filename, "r", encoding="utf-8") as f:
         objects = ijson.items(f, "", multiple_values=True)

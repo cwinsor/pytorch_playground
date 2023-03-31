@@ -10,6 +10,7 @@ The dataset is the GeoCoV19, specifically the first week in February.
 '''
 
 import os
+import sys
 import argparse
 import logging
 
@@ -159,6 +160,24 @@ def main(args):
             if tweet_id not in raw_tid_to_ttext:
                 raw_tid_to_ttext[tweet_id] = tweet_text
 
+    # sanity check the encoding - should be mostly 1 or 2 bytes/character
+    # n = 0
+    # for k, v in raw_tid_to_ttext.items():
+    #     n+=1
+    #     if n>20:
+    #         break
+    #     # print(f"key {k}")
+    #     print(f"value: {v}")
+    #     # v = "a" * 1000
+    #     # v = "t"
+    #     size = sys.getsizeof(v)-49
+    #     length = len(v)
+    #     bytes_per_char = size / length
+    #     print(f"bytes_per_char {bytes_per_char}")
+    bytes_per_char = [(sys.getsizeof(v)-49)/len(v) for k, v in raw_tid_to_ttext.items()]
+    hgram = np.histogram(bytes_per_char)
+    print(hgram)
+
     # Vectorize the corpus. This means:
     # Creating a dictionary where each word corresponds to an (integer) index
     # Removing rare words (words that appear in less than 20 documents)
@@ -168,8 +187,11 @@ def main(args):
     # vectorizer = CountVectorizer(max_df=0.5, min_df=20, stop_words='english')
     # vectorizer = CountVectorizer().fit(raw_tid_to_ttext.values())
 
-    min_document_frequency = 2. / len(raw_tid_to_ttext)  # term needs to be used at least twice in the corpus
-    vectorizer = CountVectorizer(min_df=min_document_frequency).fit(raw_tid_to_ttext.values())
+    min_document_frequency = 2. / len(raw_tid_to_ttext)  # term needs to be used at least N times in the corpus
+    max_document_frequency = 0.05  # term should show up in less than specified % of documents
+    vectorizer = CountVectorizer(
+        min_df=min_document_frequency,
+        max_df=max_document_frequency).fit(raw_tid_to_ttext.values())
     
     document_word = torch.from_numpy(vectorizer.transform(raw_tid_to_ttext.values()).toarray())  # document-to-term
 
@@ -177,7 +199,20 @@ def main(args):
 
     logger.info(f"number of tweets {document_word.shape[0]}")
     logger.info(f"vocabulary size  {document_word.shape[1]}")
-    logger.info(f"vocabulary_ {vectorizer.vocabulary_}")
+
+    # sanity check torch memory usage...
+    logger.info(f"torch.get_default_dtype() {torch.get_default_dtype()}")
+    logger.info("as as intXX ----------")
+    logger.info(f"document_word.dtype {document_word.dtype})")
+    logger.info(f"document_word.shape[0] * document_word.shape[0] = {document_word.shape[0] * document_word.shape[1]}")
+    logger.info(f"document_word (in bytes) {document_word.element_size() * document_word.nelement()}")
+    logger.info("as floatXX ----------")
+    document_word = document_word.float()
+    logger.info(f"document_word.dtype {document_word.dtype})")
+    logger.info(f"document_word.shape[0] * document_word.shape[0] = {document_word.shape[0] * document_word.shape[1]}")
+    logger.info(f"document_word (in bytes) {document_word.element_size() * document_word.nelement()}")
+
+    # logger.info(f"vocabulary_ {vectorizer.vocabulary_}")
 
     vocabulary = pd.DataFrame(columns=['word', 'index'])
     vocabulary['word'] = vectorizer.get_feature_names()
@@ -196,16 +231,15 @@ def main(args):
     pyro.set_rng_seed(seed)
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    smoke_test = True
-    num_topics = 20 if not smoke_test else 3
-    document_word = document_word.float().to(device)
+    smoke_test = False
+    num_topics = 18 if not smoke_test else 3
+    # document_word = document_word.to(device)
     batch_size = 32
     learning_rate = 1e-3
     num_epochs = 50 if not smoke_test else 3
 
     # training
     pyro.clear_param_store()
-
     prodLDA = ProdLDA(
         vocab_size=document_word.shape[1],
         num_topics=num_topics,
@@ -223,6 +257,7 @@ def main(args):
         running_loss = 0.0
         for i in range(num_batches):
             batch_docs = document_word[i * batch_size:(i + 1) * batch_size, :]
+            batch_docs = batch_docs.to(device)
             loss = svi.step(batch_docs)
             running_loss += loss / batch_docs.size(0)
 
@@ -244,8 +279,6 @@ def main(args):
 
     # if not smoke_test:
     if True:
-        import matplotlib.pyplot as plt
-        from wordcloud import WordCloud
 
         beta = prodLDA.beta()
         fig, axs = plt.subplots(7, 3, figsize=(14, 24))
