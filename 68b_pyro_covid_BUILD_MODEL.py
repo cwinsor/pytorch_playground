@@ -11,8 +11,10 @@ The dataset is the GeoCoV19, specifically the first week in February.
 
 import os
 import sys
+import datetime
 import argparse
 import logging
+import wandb
 
 import pandas as pd
 import numpy as np
@@ -35,15 +37,38 @@ from wordcloud import WordCloud
 # runtime arguments
 parser = argparse.ArgumentParser(description="Implementation of DeepCluster-v2")
 
-parser.add_argument("--a_choice", type=str, default="10", choices=["10", "11"],
-                    help="nominal argument")
-parser.add_argument("--a_string", type=str, default="foobar",
-                    help="string argument")
-parser.add_argument("--a_number", type=int, default=31,
-                    help="numeric argument")
-parser.add_argument("--debug", default=False, action="store_true",
-                    help="an example of a 'switch', not recommended preferring choice with a default")
 
+
+parser.add_argument("--run_name", type=str, default=datetime.datetime.now().strftime("%m%d_%H%M%S"),
+                    help="unique name for this run")
+parser.add_argument("--smoke_test", default=False, action="store_true",
+                    help="run the short smoke test")
+parser.add_argument("--output_dir", type=str, default="output",
+                    help="folder to save snapshots of model")
+parser.add_argument("--save_period_in_batches", type=int, default=2000,
+                    help="number of batches between model saves")
+
+parser.add_argument("--num_topics", type=int, default=18,
+                    help="number of topics (hidden representation, embeddings)")
+parser.add_argument("--batch_size", type=int, default=32,
+                    help="batch size")
+parser.add_argument("--learning_rate", type=float, default=1e-3,
+                    help="learning rate")
+parser.add_argument("--num_epochs", type=int, default=50,
+                    help="number of epochs")
+                    
+
+
+
+
+parser.add_argument("--z_example_switch", default=False, action="store_true",
+                    help="an example of a 'switch'")
+parser.add_argument("--z_example_choice", type=str, default="10", choices=["10", "11"],
+                    help="nominal argument")
+parser.add_argument("--z_example_string", type=str, default="foobar",
+                    help="string argument")
+parser.add_argument("--z_example_number", type=int, default=31,
+                    help="numeric argument")
 
 class Encoder(nn.Module):
     # Base class for the encoder net, used in the guide
@@ -139,6 +164,21 @@ def main(args):
     logger.setLevel(logging.INFO)  # also use DEBUG, WARNING, NOTSET, INFO etc
     logger.info(f"args: {args}")
 
+    # Initialize wandb as soon as possible to log all stdout to the cloud
+    wandb.init(project="twitter_pyro", config=args)
+
+    def save_checkpoint(step):
+        file_name = f"{args.output_dir}/{args.run_name}_{step}.pt"
+        logger.info(f"saving checkpoint to {file_name}")
+        torch.save(prodLDA, file_name)
+
+    def restore_checkpoint(step):
+        file_name = f"{args.output_dir}/{args.run_name}_{step}.pt"
+        logger.info(f"restoring checkpoint {file_name}")
+        # m = torch.load(prodLDA, file_name)
+        m = torch.load(file_name)
+        return m
+
     assert pyro.__version__.startswith('1.8.4')
 
     # read the preprocessed tweet data
@@ -152,7 +192,7 @@ def main(args):
             tweet_id = object["tid"]
             tweet_text = object["text"]
             # sender ...
-            # recipient ...            
+            # recipient ...
             # if tweet_id not in raw_tid_to_ttext:
             #     raw_tid_to_ttext[tweet_id] = set()
             # raw_tid_to_ttext[tweet_id].add(tweet_text)
@@ -174,9 +214,10 @@ def main(args):
     #     length = len(v)
     #     bytes_per_char = size / length
     #     print(f"bytes_per_char {bytes_per_char}")
-    bytes_per_char = [(sys.getsizeof(v)-49)/len(v) for k, v in raw_tid_to_ttext.items()]
-    hgram = np.histogram(bytes_per_char)
-    print(hgram)
+
+    # bytes_per_char = [(sys.getsizeof(v)-49)/len(v) for k, v in raw_tid_to_ttext.items()]
+    # hgram = np.histogram(bytes_per_char)
+    # print(hgram)
 
     # Vectorize the corpus. This means:
     # Creating a dictionary where each word corresponds to an (integer) index
@@ -192,7 +233,7 @@ def main(args):
     vectorizer = CountVectorizer(
         min_df=min_document_frequency,
         max_df=max_document_frequency).fit(raw_tid_to_ttext.values())
-    
+
     document_word = torch.from_numpy(vectorizer.transform(raw_tid_to_ttext.values()).toarray())  # document-to-term
 
     # document_word = torch.from_numpy(vectorizer.fit_transform(raw_tid_to_ttext.values()).toarray())
@@ -201,12 +242,11 @@ def main(args):
     logger.info(f"vocabulary size  {document_word.shape[1]}")
 
     # sanity check torch memory usage...
-    logger.info(f"torch.get_default_dtype() {torch.get_default_dtype()}")
-    logger.info("as as intXX ----------")
+    logger.info("document_word as as int ----------")
     logger.info(f"document_word.dtype {document_word.dtype})")
     logger.info(f"document_word.shape[0] * document_word.shape[0] = {document_word.shape[0] * document_word.shape[1]}")
     logger.info(f"document_word (in bytes) {document_word.element_size() * document_word.nelement()}")
-    logger.info("as floatXX ----------")
+    logger.info("document_word as float ----------")
     document_word = document_word.float()
     logger.info(f"document_word.dtype {document_word.dtype})")
     logger.info(f"document_word.shape[0] * document_word.shape[0] = {document_word.shape[0] * document_word.shape[1]}")
@@ -231,37 +271,51 @@ def main(args):
     pyro.set_rng_seed(seed)
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    smoke_test = False
-    num_topics = 18 if not smoke_test else 3
-    # document_word = document_word.to(device)
-    batch_size = 32
-    learning_rate = 1e-3
-    num_epochs = 50 if not smoke_test else 3
-
     # training
     pyro.clear_param_store()
     prodLDA = ProdLDA(
         vocab_size=document_word.shape[1],
-        num_topics=num_topics,
-        hidden=100 if not smoke_test else 10,
+        num_topics=args.num_topics,
+        hidden=100 if not args.smoke_test else 10,
         dropout=0.2
     )
     prodLDA.to(device)
 
-    optimizer = pyro.optim.Adam({"lr": learning_rate})
+    optimizer = pyro.optim.Adam({"lr": args.learning_rate})
     svi = SVI(prodLDA.model, prodLDA.guide, optimizer, loss=TraceMeanField_ELBO())
-    num_batches = int(math.ceil(document_word.shape[0] / batch_size)) if not smoke_test else 1
+    num_batches = int(math.ceil(document_word.shape[0] / args.batch_size)) if not args.smoke_test else 1
 
-    bar = trange(num_epochs)
+    bar = trange(args.num_epochs)
+    global_step = 0
     for epoch in bar:
         running_loss = 0.0
         for i in range(num_batches):
-            batch_docs = document_word[i * batch_size:(i + 1) * batch_size, :]
+            global_step += 1
+            batch_docs = document_word[i * args.batch_size:(i + 1) * args.batch_size, :]
             batch_docs = batch_docs.to(device)
             loss = svi.step(batch_docs)
             running_loss += loss / batch_docs.size(0)
 
+            wandb.log(
+                {
+                    "train_loss": loss,
+                    "running_loss": running_loss,
+                    "optimizer_args": optimizer.pt_optim_args,
+                    "epoch": epoch,
+                },
+                step=global_step,
+            )
+
+            if global_step % args.save_period_in_batches == 0:
+                save_checkpoint(f"{global_step:04}")
+
         bar.set_postfix(epoch_loss='{:.2e}'.format(running_loss))
+
+    # save final model
+    save_checkpoint("FINAL")
+
+    # restore from checkpoint
+    prodLDA = restore_checkpoint("FINAL")
 
     # visualization using word cloud
     def plot_word_cloud(b, ax, v, n):
@@ -279,7 +333,7 @@ def main(args):
 
     # if not smoke_test:
     if True:
-
+        logger.info("----- visualize the wordcloud -----")
         beta = prodLDA.beta()
         fig, axs = plt.subplots(7, 3, figsize=(14, 24))
         for n in range(beta.shape[0]):
