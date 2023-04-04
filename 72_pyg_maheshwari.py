@@ -40,7 +40,7 @@ parser.add_argument("--num_workers", dest="num_workers", action="store", default
 parser.add_argument("--dataset", dest="dataset", action="store", required=True, type=str,
                     choices=["proteins", "enzymes", "collab", "reddit_binary", "reddit_multi", "imdb_binary",
                              "imdb_multi", "dd", "mutag", "nci1"],
-                             help="dataset on which you want to train the model")
+                    help="dataset on which you want to train the model")
 parser.add_argument("--model", dest="model", action="store", default="gcn", type=str,
                     choices=["gcn", "gin", "resgcn", "gat", "graphsage", "sgc"],
                     help="he model architecture of the GNN Encoder")
@@ -55,7 +55,7 @@ parser.add_argument("--augment_list", dest="augment_list", nargs="*",
                     default=["edge_perturbation", "node_dropping"], type=str,
                     choices=["edge_perturbation", "diffusion", "diffusion_with_sample", "node_dropping",
                              "random_walk_subgraph", "node_attr_mask"],
-                              help="augmentations to be applied as space separated strings")
+                    help="augmentations to be applied as space separated strings")
 parser.add_argument("--train_data_percent", dest="train_data_percent", action="store", default=1.0, type=float)
 
 
@@ -168,6 +168,7 @@ def main(args):
             "best_val_loss": best_val_loss,
             "test_loss (final)": test_loss,
         })
+
 
 if __name__ == "__main__":
     args = parser.parse_args()

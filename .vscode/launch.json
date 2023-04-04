@@ -153,8 +153,18 @@
                 "--augment_list", "edge_perturbation",
                 "--augment_list", "node_dropping",
                 "--batch_size", "256",
-                "--epochs", "6",
+                "--epochs", "60",
             ]
+        },
+        {
+            "name": "73_pyg_covid_PREP_DATA",
+            "type": "python",
+            "request": "launch",
+            "program": "73_pyg_covid_PREP_DATA.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+             ]
         },
 
     ]
