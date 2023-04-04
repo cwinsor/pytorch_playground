@@ -9,6 +9,7 @@ Inference For Topic Models by Akash Srivastava and Charles Sutton. "
 import os
 import argparse
 import logging
+import wandb
 
 import pandas as pd
 import numpy as np
@@ -136,6 +137,9 @@ def main(args):
 
     assert pyro.__version__.startswith('1.8.4')
 
+    # Initialize wandb as soon as possible to log all stdout to the cloud
+    wandb.init(project="pyro_20newsgroups", config=args)
+
     # Vectorize the corpus. This means:
     # Creating a dictionary where each word corresponds to an (integer) index
     # Removing rare words (words that appear in less than 20 documents) and common
@@ -185,12 +189,24 @@ def main(args):
     num_batches = int(math.ceil(document_word.shape[0] / batch_size)) if not smoke_test else 1
 
     bar = trange(num_epochs)
+    batch = 0
     for epoch in bar:
         running_loss = 0.0
         for i in range(num_batches):
+            batch += 1
             batch_docs = document_word[i * batch_size:(i + 1) * batch_size, :]
             loss = svi.step(batch_docs)
             running_loss += loss / batch_docs.size(0)
+
+            wandb.log(
+                {
+                    "train_loss": loss,
+                    "running_loss": running_loss,
+                    "optimizer_args": optimizer.pt_optim_args,
+                    "epoch": epoch,
+                },
+                step=batch,
+            )
 
         bar.set_postfix(epoch_loss='{:.2e}'.format(running_loss))
 
@@ -209,7 +225,7 @@ def main(args):
         ax.axis("off")
 
     # if not smoke_test:
-    if True:
+    if False:
         import matplotlib.pyplot as plt
         from wordcloud import WordCloud
 
@@ -220,7 +236,7 @@ def main(args):
             plot_word_cloud(beta[n], axs[i, j], vocabulary, n)
         axs[-1, -1].axis('off')
 
-    plt.show()
+        plt.show()
 
     logger.info("done")
 

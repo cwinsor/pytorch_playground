@@ -10,6 +10,9 @@
 
 
 
+
+
+
         {
             "name": "current_file",
             "type": "python",
@@ -72,7 +75,7 @@
             "name": "66_pyro",
             "type": "python",
             "request": "launch",
-            "program": "66_pgm_from_pyro.py",
+            "program": "66_pyro.py",
             "console": "integratedTerminal",
             "justMyCode": false,
             "args": [
@@ -84,6 +87,18 @@
             "type": "python",
             "request": "launch",
             "program": "67_pgm_topic_model_from_pyro.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--a_choice", "11",
+            ]
+        },
+        
+        {
+            "name": "67b_pyro_rain_sprinkler",
+            "type": "python",
+            "request": "launch",
+            "program": "67b_pyro_rain_sprinkler.py",
             "console": "integratedTerminal",
             "justMyCode": false,
             "args": [
@@ -112,5 +127,35 @@
                 "--a_choice", "11",
             ]
         },
+        {
+            "name": "70_bean_machine",
+            "type": "python",
+            "request": "launch",
+            "program": "70_bean_machine.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--a_choice", "11",
+            ]
+        },
+        {
+            "name": "72_pyg_maheshwari",
+            "type": "python",
+            "request": "launch",
+            "program": "72_pyg_maheshwari.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--output", "output_proteins",
+                "--dataset", "proteins",
+                "--model", "gcn",
+                "--loss", "infonce",
+                "--augment_list", "edge_perturbation",
+                "--augment_list", "node_dropping",
+                "--batch_size", "256",
+                "--epochs", "6",
+            ]
+        },
+
     ]
 }
