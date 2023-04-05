@@ -13,6 +13,9 @@
 
 
 
+
+
+
         {
             "name": "current_file",
             "type": "python",
@@ -165,6 +168,15 @@
             "justMyCode": false,
             "args": [
              ]
+        },
+
+        {
+            "name": "73b_pyg_covid_PREP_DATA",
+            "type": "python",
+            "request": "launch",
+            "program": "73b_pyg_covid_PREP_DATA.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
         },
 
     ]

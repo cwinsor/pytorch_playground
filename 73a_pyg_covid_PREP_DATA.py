@@ -121,6 +121,14 @@ def main(args):
     tweet_id_set = {}
     list_of_cotton = list()
 
+
+    for original_tid in tweet_id_set.items():
+        generate this graph...
+        
+    adjacency_day_to_original_tweet
+
+
+
     with open(local_filename, "r", encoding="utf-8") as f:
         objects = ijson.items(f, "", multiple_values=True)
         for object in objects:
@@ -128,23 +136,24 @@ def main(args):
             if count > CUTOFF:
                 break
 
-            # identify what keys are always present...
-            if count == 1:
-                in_all = set(object.keys())
-            else:
-                in_all = in_all.intersection(set(object.keys()))
-            in_any = in_any.union(set(object.keys()))
+            # # identify what keys are always present...
+            # if count == 1:
+            #     in_all = set(object.keys())
+            # else:
+            #     in_all = in_all.intersection(set(object.keys()))
+            # in_any = in_any.union(set(object.keys()))
 
             # common parsing
             tid = object["id"]
             full_text = object["full_text"]
 
-            # identify unique tweets
+            # maintain set of tweet IDs
             tweet_id_set = tweet_id_set.union(tid)
 
             if "retweeted_status" in object.keys():
-                retweet_original_tid = object["retweeted_status"]["id"]
-                tweet_id_set = tweet_id_set.union(tid)
+                original_tid = object["retweeted_status"]["id"]
+                tweet_id_set = tweet_id_set.union(original_tid)  # maintain set of tweet IDs
+
                 retweet_count[retweet_original_tid] += 1
 
             # if tid in [1223491082425684000, 1223519633711386600]:
