@@ -4,6 +4,7 @@ Experiment:
 Pytorch Dataset using PyG HeteroData
 https://pytorch-geometric.readthedocs.io/en/latest/tutorial/heterogeneous.html#
 https://pytorch-geometric.readthedocs.io/en/latest/tutorial/load_csv.html
+https://pytorch-geometric.readthedocs.io/en/latest/tutorial/create_dataset.html
 
 '''
 
@@ -46,7 +47,8 @@ class GeoCoV19GraphDataset(Dataset):
     @property
     def processed_file_names(self):
         # return ['ids_geo_2020-02-01.pt']
-        return ['ids_geo_2020-02-01.pt', 'ids_geo_2020-02-02.pt']
+        # return ['ids_geo_2020-02-01.pt', 'ids_geo_2020-02-02.pt']
+        return ['data_0.pt', 'data_1.pt']
 
     def download(self):
         rfn = self.raw_file_names
@@ -98,6 +100,7 @@ class GeoCoV19GraphDataset(Dataset):
         file_idx = -1
         for raw_path in self.raw_paths:
             file_idx += 1
+            print(f"reading {raw_path}")
 
             # Read data from file
             with open(raw_path, "r", encoding="utf-8") as f:
@@ -124,57 +127,7 @@ class GeoCoV19GraphDataset(Dataset):
                 data['user', 'retweets', 'original_tweet'].edge_index = edge_index
                 print(data)
 
-                # # EDGES
-                # edge_index = [
-                #     self._establish_edge_user_retweets_original_tweet(tweet) for tweet in retweets
-                #     ]
-            
-                # data['user', 'retweets', 'original_tweet'].edge_index = edge_index
-                # print(data)
-
                 torch.save(data, os.path.join(self.processed_dir, f'data_{file_idx}.pt'))
-
-        ################################3
-        # CUTOFF = 5  # math.inf
-        # file_idx = -1
-        # for raw_path in self.raw_paths:
-        #     file_idx += 1
-
-        #     # Read data from file
-        #     with open(raw_path, "r", encoding="utf-8") as f:
-        #         objects = ijson.items(f, "", multiple_values=True)
-
-        #         tweet_count = 0
-        #         for object in objects:
-        #             tweet_count += 1
-        #             if tweet_count > CUTOFF:
-        #                 break
-
-        #             # common parsing
-        #             tid = object["id"]
-        #             full_text = object["full_text"]
-
-        #             tweet_id_set = tweet_id_set.union(tid)
-
-        #             if "retweeted_status" in object.keys():
-        #                 original_tid = object["retweeted_status"]["id"]
-        #                 tweet_id_set = tweet_id_set.union(original_tid)
-        #                 retweet_count[retweet_original_tid] += 1
-
-        #         node_feats = torch.rand((18,8))
-        #         # data object - a single graph
-        #         data = Data(x=node_feats,
-        #                     edge_index=edge_index,
-        #                     edge_attr=edge_feats,
-        #                     y=label,
-        #                     smiles=mol['smiles']
-        #         )
-
-        # if self.pre_filter is not None and not self.pre_filter(data):
-        #     continue
-
-        # if self.pre_transform is not None:
-        #     data = self.pre_transform(data)
 
     def len(self):
         return len(self.processed_file_names)
@@ -182,12 +135,6 @@ class GeoCoV19GraphDataset(Dataset):
     def get(self, idx):
         data = torch.load(os.path.join(self.processed_dir, f'data_{idx}.pt'))
         return data
-
-    # # zona - experimental
-    # @property
-    # def num_nodes(self):
-    #     return NUM_ORIGINAL_TWEETS + NUM_TWEET_DAILY_SUMMARIES + NUM_USERS
-
 
 
 def main(args):
@@ -199,19 +146,14 @@ def main(args):
     logger.info(f"args: {args}")
 
     dataset = GeoCoV19GraphDataset(root=r'D:\dataset_covid_GeoCovGraph')
+
+    logger.info("------ data[0] ------")
     data = dataset[0]
-    print(data)
+    logger.info(data)
 
-    # # check ...
-    # # <nothing here...>
-
-    # # visualize
-    # data_h = data.to_homogeneous()
-    # data_h_nx = to_networkx(data_h, to_undirected=True)
-    # nx.draw(data_h_nx)
-
-    # # graph = dataset[1]
-    # # print(graph)
+    logger.info("------ data[1] ------")
+    data = dataset[0]
+    logger.info(data)
 
     logger.info("done")
 
