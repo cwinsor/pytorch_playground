@@ -40,11 +40,13 @@ class GeoCoV19GraphDataset(Dataset):
 
     @property
     def raw_file_names(self):
-        return ['ids_geo_2020-02-01.jsonl', 'ids_geo_2020-02-02.jsonl']
+        return ['ids_geo_2020-02-01.jsonl']
+        # return ['ids_geo_2020-02-01.jsonl', 'ids_geo_2020-02-02.jsonl']
 
     @property
     def processed_file_names(self):
-        return ['ids_geo_2020-02-01.pt', 'ids_geo_2020-02-02.pt']
+        return ['ids_geo_2020-02-01.pt']
+        # return ['ids_geo_2020-02-01.pt', 'ids_geo_2020-02-02.pt']
 
     def download(self):
         rfn = self.raw_file_names
@@ -57,25 +59,19 @@ class GeoCoV19GraphDataset(Dataset):
         is_retweet = "retweeted_status" in tweet.keys()
         return is_retweet
 
-    def _map_and_encode_original_tweet(self, tweet):
-                #                 original_tid = object["retweeted_status"]["id"]
-        #                 tweet_id_set = tweet_id_set.union(original_tid)
-        #                 retweet_count[retweet_original_tid] += 1
-        return "zona"
-
-    def _map_and_encode_user(self, tweet):
-        return "zona"
-
-    def _establish_edge_user_retweets_original_tweet(self, tweet):
-        return "zona"
-
     def _load_node_original_tweets(self, retweets, encoders=None):
         mapping = {tweet["retweeted_status"]["id"]: i for i, tweet in enumerate(retweets)}
-
         x = None
-        # foo = [retweets[n]["retweeted_status"]["user"]["name"] for n in mapping.values()]
-        xs = torch.rand(len(mapping))
-        x = torch.cat(xs, dim=-1)
+        x = torch.rand(len(mapping), 2)  # zona temporary
+        if encoders is not None:
+            xs = [encoder(retweets[col]) for col, encoder in encoders.items()]
+            x = torch.cat(xs, dim=-1)
+        return x, mapping
+
+    def _load_node_users(self, retweets, encoders=None):
+        mapping = {tweet["user"]["id"]: i for i, tweet in enumerate(retweets)}
+        x = None
+        x = torch.rand(len(mapping), 3)  # zona temporary
         if encoders is not None:
             xs = [encoder(retweets[col]) for col, encoder in encoders.items()]
             x = torch.cat(xs, dim=-1)
@@ -96,18 +92,12 @@ class GeoCoV19GraphDataset(Dataset):
                     tweet for tweet in tweets if self._is_retweet(tweet)
                     ]
 
+                # NODES
                 original_tweet_x, original_tweet_mapping = self._load_node_original_tweets(retweets=retweets, encoders=None)
-
-                # # NODES
-                # original_tweet_x, original_tweet_mapping = [
-                #     self._map_and_encode_original_tweet(tweet) for tweet in retweets if tweet not in 
-                #     ]
-                # user_x, user_mapping = [
-                #     self._map_and_encode_user(tweet) for tweet in retweets
-                #     ]
+                users_x, users_mapping = self._load_node_users(retweets=retweets, encoders=None)
 
                 data = HeteroData()
-                # data['user'].num_nodes = user_x
+                data['user'].x = users_x
                 data['original_tweet'].x = original_tweet_x
                 print(data)
 
@@ -116,8 +106,8 @@ class GeoCoV19GraphDataset(Dataset):
                 #     self._establish_edge_user_retweets_original_tweet(tweet) for tweet in retweets
                 #     ]
             
-                data['user', 'retweets', 'original_tweet'].edge_index = edge_index
-                print(data)
+                # data['user', 'retweets', 'original_tweet'].edge_index = edge_index
+                # print(data)
 
                 torch.save(data, os.path.join(self.processed_dir, f'data_{file_idx}.pt'))
 
