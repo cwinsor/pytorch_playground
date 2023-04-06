@@ -1,4 +1,12 @@
 
+'''
+Experiment:
+Pytorch Dataset using PyG HeteroData
+https://pytorch-geometric.readthedocs.io/en/latest/tutorial/heterogeneous.html#
+https://pytorch-geometric.readthedocs.io/en/latest/tutorial/load_csv.html
+
+'''
+
 import os
 import numpy as np
 import argparse
@@ -6,7 +14,9 @@ import logging
 
 import torch
 from torch_geometric.data import Data, Dataset, HeteroData, download_url
-
+from torch_geometric.utils import to_networkx
+import networkx as nx
+from matplotlib import pyplot as plt
 
 # runtime arguments
 parser = argparse.ArgumentParser(description="Pytorch Geometric Twitter Dataset Preprocessing")
@@ -41,68 +51,76 @@ class GeoCoV19GraphDataset(Dataset):
                        'https://crisisnlp.qcri.org/covid19 and \n'
                        'https://github.com/docnow/hydrator')
 
+    def _is_retweet(tweet):
+        is_retweet = "retweeted_status" in object.keys()
+        return is_retweet
+
+    def _map_and_encode_original_tweet(tweet):
+                #                 original_tid = object["retweeted_status"]["id"]
+        #                 tweet_id_set = tweet_id_set.union(original_tid)
+        #                 retweet_count[retweet_original_tid] += 1
+
+    
+        return "zona"
+
+    def _map_and_encode_user(tweet):
+        return "zona"
+    
+    def _establish_edge_user_retweets_original_tweet(tweet):
+        return "zona"
+    
     def process(self):
-
-        NUM_ORIGINAL_TWEETS = 2
-        NUM_ORIGINAL_TWEET_FEATURES = 2
-
-        NUM_TWEET_DAILY_SUMMARIES = 6
-        NUM_TWEET_DAILY_SUMMARY_FEATURES = 2
-
-        NUM_USERS = 11
-        NUM_USER_FEATURES = 3
-
-        # NODES
-        # 2 original tweets, two features each
-        original_tweets = np.random.randint(100, size=(NUM_ORIGINAL_TWEETS, NUM_ORIGINAL_TWEET_FEATURES))
-        # 6 daily summaries 2 features each
-        daily_summaries = np.random.randint(100, size=(NUM_TWEET_DAILY_SUMMARIES, NUM_TWEET_DAILY_SUMMARY_FEATURES))
-        # 9 users 3 features each
-        users = np.random.randint(100, size=(NUM_USERS, NUM_USER_FEATURES))
-
-        # EDGES
-        user_retweet_to_daily_tweet_activity = np.array([
-            [0, 0],
-            [1, 0],
-            [3, 1],
-            [4, 1],
-            [5, 1],
-            [6, 1],
-            [8, 2],
-            [9, 2],
-            [10, 2],
-            [1, 3],
-            [2, 3],
-            [7, 4]])
-
-        summary_to_original_tweet = np.array([
-            [0, 0],
-            [1, 0],
-            [2, 0],
-            [3, 1],
-            [4, 1],
-            [5, 1]])
-
-        data = HeteroData()
-        data['original_tweet'].x = torch.tensor(original_tweets)
-        data['daily_tweet_activity'].x = torch.tensor(daily_summaries)
-        data['user'].x = torch.tensor(users)
-        data['user', 'retweeted_contributing_to', 'daily_tweet_activity'] = torch.tensor(user_retweet_to_daily_tweet_activity)
-        data['daily_tweet_activity', 'refers_to', 'original_tweet'] = torch.tensor(summary_to_original_tweet)
 
         file_idx = -1
         for raw_path in self.raw_paths:
             file_idx += 1
 
-            data = HeteroData()
-            data['original_tweet'].x = torch.tensor(original_tweets)
-            data['daily_tweet_activity'].x = torch.tensor(daily_summaries)
-            data['user'].x = torch.tensor(users)
-            data['user', 'retweeted_contributing_to', 'daily_tweet_activity'] = torch.tensor(user_retweet_to_daily_tweet_activity)
-            data['daily_tweet_activity', 'refers_to', 'original_tweet'] = torch.tensor(summary_to_original_tweet)
+            # Read data from file
+            with open(raw_path, "r", encoding="utf-8") as f:
+                tweets = ijson.items(f, "", multiple_values=True)
 
-            torch.save(data, os.path.join(self.processed_dir, f'data_{file_idx}.pt'))
+                # just retweets
+                retweets = [
+                    tweet for tweet in tweets if self._is_retweet(tweet)
+                    ]
 
+                def establish_original_tweets(retweets, encoders=None):
+                    mapping = {tweet["retweeted_status"]["id"] : i for i, tweet in enumerate(retweets)}
+                    x = None
+                    if encoders is not None:
+                        xs = [encoder(df[col]) for col, encoder in encoders.items()]
+                        x = torch.cat(xs, dim=-1)
+
+                establish_original_tweets(retweets=retweets)
+
+
+
+                {a:b}
+
+                # NODES
+                original_tweet_x, original_tweet_mapping = [
+                    self._map_and_encode_original_tweet(tweet) for tweet in retweets if tweet not in 
+                    ]
+                user_x, user_mapping = [
+                    self._map_and_encode_user(tweet) for tweet in retweets
+                    ]
+
+                data = HeteroData()
+                data['user'].num_nodes = user_x
+                data['original_tweet'].x = original_tweet_x
+                print(data)
+
+                # EDGES
+                edge_index = [
+                    self._establish_edge_user_retweets_original_tweet(tweet) for tweet in retweets
+                    ]
+            
+                data['user', 'retweets', 'original_tweet'].edge_index = edge_index
+                print(data)
+
+                torch.save(data, os.path.join(self.processed_dir, f'data_{file_idx}.pt'))
+
+        ################################3
         # CUTOFF = 5  # math.inf
         # file_idx = -1
         # for raw_path in self.raw_paths:
@@ -151,6 +169,12 @@ class GeoCoV19GraphDataset(Dataset):
         data = torch.load(os.path.join(self.processed_dir, f'data_{idx}.pt'))
         return data
 
+    # # zona - experimental
+    # @property
+    # def num_nodes(self):
+    #     return NUM_ORIGINAL_TWEETS + NUM_TWEET_DAILY_SUMMARIES + NUM_USERS
+
+
 
 def main(args):
 
@@ -163,6 +187,17 @@ def main(args):
     dataset = GeoCoV19GraphDataset(root=r'D:\dataset_covid_GeoCovGraph')
     data = dataset[0]
     print(data)
+
+    # check ...
+    # <nothing here...>
+
+    # visualize
+    data_h = data.to_homogeneous()
+    data_h_nx = to_networkx(data_h, to_undirected=True)
+    nx.draw(data_h_nx)
+
+    # graph = dataset[1]
+    # print(graph)
 
     logger.info("done")
 

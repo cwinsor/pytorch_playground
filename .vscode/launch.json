@@ -16,6 +16,8 @@
 
 
 
+
+
         {
             "name": "current_file",
             "type": "python",
@@ -175,6 +177,15 @@
             "type": "python",
             "request": "launch",
             "program": "73b_pyg_covid_PREP_DATA.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+        },
+
+        {
+            "name": "74b_hetero_using_pyg_heterodata_try2",
+            "type": "python",
+            "request": "launch",
+            "program": "74b_hetero_using_pyg_heterodata_try2.py",
             "console": "integratedTerminal",
             "justMyCode": true,
         },
